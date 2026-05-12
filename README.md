@@ -1,2 +1,1 @@
-# taskCompletionModel
-Modeling Task Completion as a Function of Task Complexity and Nationality
+[Modeling Task Completion as a Function of Task Complexity and Nationality.docx](https://github.com/user-attachments/files/27654114/Modeling.Task.Completion.as.a.Function.of.Task.Complexity.and.Nationality.docx)
