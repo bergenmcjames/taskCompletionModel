@@ -1,0 +1,75 @@
+##Load packages.
+library(tidyverse)
+library(broom)
+install.packages('sandwich')
+library(sandwich)
+install.packages('emmeans')
+library(emmeans)
+library(dplyr)
+
+##Read the data in.
+npp <- read.csv('https://www.dropbox.com/s/id0iv5cxyns9fxt/nuclear_power_plant.csv?dl=1')
+
+##Prepare for regression modeling.
+npp$Nationality <- factor(npp$Nationality)
+npp$Nationality <- relevel(npp$Nationality, ref = "non-US")
+
+##Finding summary statistics for write-up.
+npp %>%
+  group_by(Nationality) %>%
+  summarise(
+    mean_time = mean(Time),
+    sd_time = sd(Time),
+    n = n()
+  )
+
+##Creating a summary statistics vector for TACOM.
+c(
+  mean = mean(npp$TACOM),
+  sd = sd(npp$TACOM),
+  min = min(npp$TACOM),
+  max = max(npp$TACOM)
+)
+
+##Creating various mlr models.
+m1 <- lm(Time ~ TACOM + Nationality, data = npp)
+
+m2 <- lm(Time ~ TACOM * Nationality, data = npp)
+
+m3 <- lm(Time ~ TACOM + I(TACOM^2) + Nationality, data = npp)
+
+m4 <- lm(Time ~ (TACOM + I(TACOM^2)) * Nationality, data = npp)
+
+##Running AIC and BIC tests on our mlrs.
+AIC(m1, m2, m3, m4)
+BIC(m1, m2, m3, m4)
+
+##running an ANOVA test to find the variance for each variable on our selected model, getting summary statistics.
+anova(m4)
+summary(m4)
+
+##Getting TACOM quantiles.
+q <- quantile(npp$TACOM, c(0.25, 0.75))
+q
+
+##Computing adjusted means and finding the difference by Nationality at different TACOM levels.
+emm <- emmeans(m4, ~ Nationality | TACOM,
+               at = list(TACOM = q))
+contrast(emm, method = "pairwise")
+
+##Graphing our chosen model.
+ggplot(npp, aes(x = TACOM, y = Time, color = Nationality)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              formula = y ~ poly(x, 2),
+              se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Task Completion Time vs Task Complexity",
+    x = "Task Complexity (TACOM)",
+    y = "Completion Time (seconds)"
+  )
+
+##Getting diagnostic plots for our model.
+par(mfrow = c(2,2))
+plot(m4)
